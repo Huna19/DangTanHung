@@ -1,14 +1,14 @@
-# Giai đoạn build
+# Giai đoạn 1: Build bằng Maven
 FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 
-# PHẢI CÓ DÒNG NÀY: Copy toàn bộ code (bao gồm pom.xml) vào container
+# COPY TOÀN BỘ CODE VÀO ĐÂY (Đây là dòng quan trọng nhất)
 COPY . .
 
-# Sau đó mới chạy lệnh build
+# Chạy lệnh build (Đã có file pom.xml nên sẽ không lỗi nữa)
 RUN mvn clean package -DskipTests
 
-# Giai đoạn chạy
+# Giai đoạn 2: Chạy ứng dụng
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
