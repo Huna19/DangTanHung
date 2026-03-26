@@ -1,23 +1,17 @@
-# === GIAI ĐOẠN 1: BUILD (dùng Maven + JDK 21) ===
-FROM maven:3.9.9-eclipse-temurin-21 AS builder
-
+# Giai đoạn 1: Build ứng dụng bằng Maven và JDK 21
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 WORKDIR /app
-
-# Copy toàn bộ code
-COPY . .
-
-# Build jar (bỏ test để build nhanh)
+# Copy file cấu hình và mã nguồn vào image
+COPY pom.xml .
+COPY src ./src
+# Build ra file .jar (bỏ qua chạy thử test để tiết kiệm thời gian)
 RUN mvn clean package -DskipTests
 
-# === GIAI ĐOẠN 2: RUN (chỉ dùng JRE 21, nhẹ hơn) ===
-FROM eclipse-temurin:21-jre-jammy
-
+# Giai đoạn 2: Chạy ứng dụng với JRE 21 (cho nhẹ image)
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-
-# Copy file .jar từ giai đoạn build
-COPY --from=builder /app/target/*.jar app.jar
-
+# Lấy file jar đã build từ giai đoạn 1 sang
+COPY --from=build /app/target/*.jar app.jar
+# Lệnh khởi chạy ứng dụng
 EXPOSE 8080
-
-# Chạy ứng dụng
 ENTRYPOINT ["java", "-jar", "app.jar"]
