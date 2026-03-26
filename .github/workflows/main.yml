@@ -9,20 +9,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
-
+        uses: actions/checkout@v4
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v4.0.0
+        uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }} 
+          username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push image
-        uses: docker/build-push-action@v7.0.0
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./DEMOCICD           # ← Sửa ở đây
+          file: ./DEMOCICD/Dockerfile   # ← Sửa ở đây
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:latest
-            ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:v1
+            ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:${{ github.sha }}
