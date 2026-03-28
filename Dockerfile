@@ -1,22 +1,24 @@
 # ===== BUILD STAGE =====
-FROM maven:3.9.6-eclipse-temurin-17 AS build
-
+FROM node:18 AS builder
 WORKDIR /app
 
-# Copy toàn bộ project (có pom.xml)
+# Copy package files trước để tận dụng Docker cache
+COPY package*.json ./
+
+# Cài dependencies
+RUN npm ci --only=production
+
+# Copy source code
 COPY . .
 
-# Build project
-RUN mvn clean package -DskipTests
-
-
-# ===== RUN STAGE =====
-FROM eclipse-temurin:17-jdk
+# ===== PRODUCTION STAGE =====
+FROM node:18-slim
 
 WORKDIR /app
 
-# Copy file jar từ stage build
-COPY --from=build /app/target/*.jar app.jar
+# Copy từ builder stage
+COPY --from=builder /app /app
 
-# Chạy app
-ENTRYPOINT ["java", "-jar", "app.jar"]
+EXPOSE 3000
+
+CMD ["npm", "start"]
