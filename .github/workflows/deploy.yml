@@ -2,11 +2,12 @@ name: CI/CD Pipeline Java 21
 
 on:
   push:
-    branches: [ "main" ] # Robot tự chạy khi bạn push code lên main
+    branches: [ "main" ]
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,26 +21,31 @@ jobs:
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./DEMOCICD              # ✅ QUAN TRỌNG (fix lỗi pom.xml)
+          file: ./DEMOCICD/Dockerfile     # ✅ chỉ rõ Dockerfile
           push: true
-          # Thay đổi tên image tùy ý bạn
-          tags: ${{ secrets.DOCKER_USERNAME }}/demo-cicd-hutech:latest
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:latest
+            ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:${{ github.sha }}
+
       - name: Triển khai lên DevOps Classroom
         run: |
-          REPO="dangtanhung1/spring-boot-app"
-          CONTAINER_PORT=80
+          REPO="${{ secrets.DOCKER_USERNAME }}/spring-boot-app"
+          CONTAINER_PORT=8080   # ⚠️ Spring Boot thường là 8080
+
           RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "${{ secrets.DEPLOY_URL }}?repo=$REPO&tag=latest&slot=2&container_port=$CONTAINER_PORT&strict_container_port=0")
+
           BODY=$(echo "$RESPONSE" | sed "$d")
           CODE=$(echo "$RESPONSE" | tail -n1)
+
           echo "Webhook HTTP: $CODE"
+
           if [ "$CODE" -lt 200 ] || [ "$CODE" -ge 300 ]; then
-            echo "Deploy thất bại. Xem chi tiết trong nhóm log bên dưới."
-            echo "::group::Chi tiết webhook JSON"
+            echo "Deploy thất bại"
+            echo "::group::Chi tiết"
             echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
             echo "::endgroup::"
             exit 1
           fi
-          echo "Deploy thành công."
-          echo "::group::Chi tiết webhook JSON"
-          echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
-          echo "::endgroup::"
+
+          echo "Deploy thành công"
