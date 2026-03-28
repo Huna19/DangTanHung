@@ -11,6 +11,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./DEMOCICD           # ← Sửa ở đây
+          file: ./DEMOCICD/Dockerfile   # ← Sửa ở đây
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:latest
+            ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:${{ github.sha }}
+name: CI to Docker Hub
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup JDK 21
         uses: actions/setup-java@v4
         with:
@@ -18,11 +46,11 @@ jobs:
           distribution: 'temurin'
 
       - name: Grant execute permission for mvnw
-        run: chmod +x ./DangTanHung/mvnw
+        run: chmod +x ./HuynhMinhQuan/mvnw
 
       - name: Build Spring Boot
         run: ./mvnw clean package -DskipTests
-        working-directory: DangTanHung
+        working-directory: HuynhMinhQuan
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -33,12 +61,33 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./DEMOCICD
-          file: ./DEMOCICD/Dockerfile
+          context: ./HuynhMinhQuan
+          file: ./HuynhMinhQuan/Dockerfile
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/democi:latest
             ${{ secrets.DOCKER_USERNAME }}/democi:${{ github.sha }}
+
+      - name: Deploy webhook
+        run: |
+          REPO="${{ secrets.DOCKER_USERNAME }}/democi"
+          CONTAINER_PORT=80
+          RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "${{ secrets.DEPLOY_URL }}?repo=$REPO&tag=latest&slot=6&container_port=$CONTAINER_PORT&strict_container_port=0")
+          BODY=$(echo "$RESPONSE" | sed "$d")
+          CODE=$(echo "$RESPONSE" | tail -n1)
+          echo "Webhook HTTP: $CODE"
+          if [ "$CODE" -lt 200 ] || [ "$CODE" -ge 300 ]; then
+            echo "Deploy thất bại. Xem chi tiết trong nhóm log bên dưới."
+            echo "::group::Chi tiết webhook JSON"
+            echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
+            echo "::endgroup::"
+            exit 1
+          fi
+          echo "Deploy thành công."
+          echo "::group::Chi tiết webhook JSON"
+          echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
+          echo "::endgroup::"
+
 
       - name: Deploy webhook
         run: |
