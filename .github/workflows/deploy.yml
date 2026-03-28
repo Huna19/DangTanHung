@@ -27,7 +27,7 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:latest
             ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:${{ github.sha }}
             
-            - name: Triển khai lên DevOps Classroom
+      - name: Triển khai lên DevOps Classroom
         run: |
           REPO="dangtanhung1/spring-boot-app"
           CONTAINER_PORT=80
