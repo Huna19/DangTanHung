@@ -11,19 +11,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Grant execute permission for mvnw
-        run: chmod +x ./HuynhMinhQuan/mvnw
-
-      - name: Build Spring Boot
-        run: ./mvnw clean package -DskipTests
-        working-directory: HuynhMinhQuan
-
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -33,18 +20,18 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./HuynhMinhQuan
-          file: ./HuynhMinhQuan/Dockerfile
+          context: ./DEMOCICD           # ← Sửa ở đây
+          file: ./DEMOCICD/Dockerfile   # ← Sửa ở đây
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/democi:latest
-            ${{ secrets.DOCKER_USERNAME }}/democi:${{ github.sha }}
-
-      - name: Deploy webhook
+            ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:latest
+            ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:${{ github.sha }}
+            
+      - name: Triển khai lên DevOps Classroom
         run: |
-          REPO="${{ secrets.DOCKER_USERNAME }}/democi"
+          REPO="dangtanhung1/spring-boot-app"
           CONTAINER_PORT=80
-          RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "${{ secrets.DEPLOY_URL }}?repo=$REPO&tag=latest&slot=6&container_port=$CONTAINER_PORT&strict_container_port=0")
+          RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "${{ secrets.DEPLOY_URL }}?repo=$REPO&tag=latest&slot=2&container_port=$CONTAINER_PORT&strict_container_port=0")
           BODY=$(echo "$RESPONSE" | sed "$d")
           CODE=$(echo "$RESPONSE" | tail -n1)
           echo "Webhook HTTP: $CODE"
